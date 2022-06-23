@@ -1,0 +1,15 @@
+server:
+    port: 8900
+spring:
+    application:
+        name: order-service
+
+    cloud:
+        nacos:
+            discovery:
+                server-addr: http://localhost:8848
+                cluster-name: NJ
+                metadata:
+                    version: v2
+
+
