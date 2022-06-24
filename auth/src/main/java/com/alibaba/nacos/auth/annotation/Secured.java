@@ -30,24 +30,25 @@ import java.lang.annotation.RetentionPolicy;
  * @author nkorange
  * @author mai.jh
  * @since 1.2.0
+ * @see com.alibaba.nacos.core.auth.AuthFilter
  */
 @Retention(RetentionPolicy.RUNTIME)
 public @interface Secured {
-    
+
     /**
      * The action type of the request.
      *
      * @return action type, default READ
      */
     ActionTypes action() default ActionTypes.READ;
-    
+
     /**
      * The name of resource related to the request.
      *
      * @return resource name
      */
     String resource() default StringUtils.EMPTY;
-    
+
     /**
      * Resource name parser. Should have lower priority than resource().
      *

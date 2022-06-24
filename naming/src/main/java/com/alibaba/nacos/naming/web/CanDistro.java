@@ -24,8 +24,9 @@ import java.lang.annotation.RetentionPolicy;
  *
  * @author nkorange
  * @since 1.0.0
+ * @see DistroFilter
  */
 @Retention(RetentionPolicy.RUNTIME)
 public @interface CanDistro {
-    
+
 }

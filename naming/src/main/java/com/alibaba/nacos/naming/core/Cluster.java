@@ -232,11 +232,12 @@ public class Cluster extends com.alibaba.nacos.api.naming.pojo.Cluster implement
     /**
      * Update instance list.
      *
-     * @param ips       instance list
+     * @param ips       instance list - 新的实例列表副本
      * @param ephemeral whether these instances are ephemeral
      */
     public void updateIps(List<Instance> ips, boolean ephemeral) {
 
+        // old instances
         Set<Instance> toUpdateInstances = ephemeral ? ephemeralInstances : persistentInstances;
 
         HashMap<String, Instance> oldIpMap = new HashMap<>(toUpdateInstances.size());
@@ -245,6 +246,7 @@ public class Cluster extends com.alibaba.nacos.api.naming.pojo.Cluster implement
             oldIpMap.put(ip.getDatumKey(), ip);
         }
 
+        // 更新的instance
         List<Instance> updatedIPs = updatedIps(ips, oldIpMap.values());
         if (updatedIPs.size() > 0) {
             for (Instance ip : updatedIPs) {
@@ -271,6 +273,7 @@ public class Cluster extends com.alibaba.nacos.api.naming.pojo.Cluster implement
             }
         }
 
+        // 新增的instance
         List<Instance> newIPs = subtract(ips, oldIpMap.values());
         if (newIPs.size() > 0) {
             Loggers.EVT_LOG
@@ -282,6 +285,7 @@ public class Cluster extends com.alibaba.nacos.api.naming.pojo.Cluster implement
             }
         }
 
+        // 删除的instance
         List<Instance> deadIPs = subtract(oldIpMap.values(), ips);
 
         if (deadIPs.size() > 0) {
@@ -294,6 +298,7 @@ public class Cluster extends com.alibaba.nacos.api.naming.pojo.Cluster implement
             }
         }
 
+        // 将这个新的副本数据拿来去更新
         toUpdateInstances = new HashSet<>(ips);
 
         if (ephemeral) {
