@@ -35,13 +35,13 @@ import static com.alibaba.nacos.config.server.utils.LogUtil.DEFAULT_LOG;
  * @author Nacos
  */
 public class NacosWebFilter implements Filter {
-    
+
     private static String webRootPath;
-    
+
     public static String rootPath() {
         return webRootPath;
     }
-    
+
     /**
      * Easy for testing.
      *
@@ -50,19 +50,19 @@ public class NacosWebFilter implements Filter {
     public static void setWebRootPath(String path) {
         webRootPath = path;
     }
-    
+
     @Override
     public void init(FilterConfig filterConfig) throws ServletException {
         ServletContext ctx = filterConfig.getServletContext();
         setWebRootPath(ctx.getRealPath("/"));
     }
-    
+
     @Override
     public void doFilter(ServletRequest request, ServletResponse response, FilterChain chain)
             throws IOException, ServletException {
         request.setCharacterEncoding(Constants.ENCODE);
         response.setContentType("application/json;charset=" + Constants.ENCODE);
-        
+
         try {
             chain.doFilter(request, response);
         } catch (IOException | ServletException ioe) {
@@ -70,7 +70,7 @@ public class NacosWebFilter implements Filter {
             throw ioe;
         }
     }
-    
+
     @Override
     public void destroy() {
     }

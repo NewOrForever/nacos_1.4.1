@@ -202,7 +202,8 @@ public class NacosNamingService implements NamingService {
     }
 
     /**
-     * NacosNamingService是NacosServiceManager这个单例bean的属性，所以该实例也是唯一的
+     * NacosNamingService是NacosServiceManager这个单例bean的属性
+     * 创建这个NamingService的时候双重检测方法并发 -> 是固定的对象
      * @param serviceName name of service
      * @param groupName   group of service
      * @param instance    instance to register
@@ -217,6 +218,9 @@ public class NacosNamingService implements NamingService {
         if (instance.isEphemeral()) {
             // 构建一个心跳检测的对象
             BeatInfo beatInfo = beatReactor.buildBeatInfo(groupedServiceName, instance);
+            // BeatTask异步任务，每次默认延迟5s后发送心跳 - 这个时候下面的注册服务的方法应该是已经执行好了
+            // 发送心跳后服务端如果没有该实例则会去重新注册
+            // 服务端直接注册还是client获取response后再去调用注册接口就要看有没有将beat参数带过去了（lightBeatEnabled来判断要不要带 - 默认是带参数的）
             beatReactor.addBeatInfo(groupedServiceName, beatInfo);
         }
         // 注册服务实例

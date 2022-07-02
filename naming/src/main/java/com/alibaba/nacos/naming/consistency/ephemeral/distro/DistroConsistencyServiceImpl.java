@@ -107,7 +107,7 @@ public class DistroConsistencyServiceImpl implements EphemeralConsistencyService
         // Instances implements Record
         // value就是操作之后的副本实例列表
         onPut(key, value);
-        // AP集群架构下同步数据到其他机器
+        // 集群架构下同步数据到其他机器
         distroProtocol.sync(new DistroKey(key, KeyBuilder.INSTANCE_LIST_KEY_PREFIX), DataOperation.CHANGE,
                 globalConfig.getTaskDispatchPeriod() / 2);
     }
@@ -127,7 +127,7 @@ public class DistroConsistencyServiceImpl implements EphemeralConsistencyService
      * Put a new record.
      *
      * @param key   key of record
-     * @param value record
+     * @param value record - 副本
      */
     public void onPut(String key, Record value) {
 
@@ -136,7 +136,8 @@ public class DistroConsistencyServiceImpl implements EphemeralConsistencyService
             // 这个service所有操作后的临时实例列表副本
             // 一个服务的所有临时实例
             datum.value = (Instances) value;
-            // ephemeral#servicename（一个服务对应的key就一个）
+            // ephemeral.namespace#servicename
+            // 一个服务对应的key就两个：临时实例一个，持久实例一个
             datum.key = key;
             datum.timestamp.incrementAndGet();
             // 同一个服务副本替换旧的
@@ -329,7 +330,7 @@ public class DistroConsistencyServiceImpl implements EphemeralConsistencyService
 
     @Override
     public void listen(String key, RecordListener listener) throws NacosException {
-        // key就认为是 - ephemeral#servicename （一个服务对应的key是一样的）
+        // key：com.alibaba.nacos.naming.iplist.ephemeral.namespace#servicename （一个服务对应的key是一样的）
         // listener 就是service
         // 一个服务:一个listener
         if (!listeners.containsKey(key)) {
@@ -375,7 +376,7 @@ public class DistroConsistencyServiceImpl implements EphemeralConsistencyService
         /**
          * Add new notify task to queue.
          *
-         * @param datumKey data key
+         * @param datumKey data key  -  服务名
          * @param action   action for data
          */
         public void addTask(String datumKey, DataOperation action) {
@@ -428,6 +429,7 @@ public class DistroConsistencyServiceImpl implements EphemeralConsistencyService
                     try {
                         if (action == DataOperation.CHANGE) {
                             // listener.onChange(服务名, 该服务的所有临时实例)
+                            // listener就是service
                             listener.onChange(datumKey, dataStore.get(datumKey).value);
                             continue;
                         }

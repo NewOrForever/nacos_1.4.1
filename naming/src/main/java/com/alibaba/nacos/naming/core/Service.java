@@ -98,6 +98,7 @@ public class Service extends com.alibaba.nacos.api.naming.pojo.Service implement
      */
     private long pushCacheMillis = 0L;
 
+    // Map<clusterName, Cluster>
     private Map<String, Cluster> clusterMap = new HashMap<>();
 
     public Service() {
@@ -174,6 +175,12 @@ public class Service extends com.alibaba.nacos.api.naming.pojo.Service implement
         return KeyBuilder.matchInstanceListKey(key, namespaceId, getName());
     }
 
+    /**
+     *
+     * @param key   target key              服务名
+     * @param value data of the key     副本数据
+     * @throws Exception
+     */
     @Override
     public void onChange(String key, Instances value) throws Exception {
 
@@ -281,7 +288,9 @@ public class Service extends com.alibaba.nacos.api.naming.pojo.Service implement
             clusterMap.get(entry.getKey()).updateIps(entryIPs, ephemeral);
         }
 
+        // 新建服务的时候也会设置这个当前时间
         setLastModifiedMillis(System.currentTimeMillis());
+        // 主动推送当前服务给集群中的其他机器 - 用于更新
         getPushService().serviceChanged(this);
         StringBuilder stringBuilder = new StringBuilder();
 
@@ -298,6 +307,7 @@ public class Service extends com.alibaba.nacos.api.naming.pojo.Service implement
      * Init service.
      */
     public void init() {
+        // 第一次延迟5s执行任务，后面每次延迟5s执行任务
         HealthCheckReactor.scheduleCheck(clientBeatCheckTask);
         for (Map.Entry<String, Cluster> entry : clusterMap.entrySet()) {
             entry.getValue().setService(this);
@@ -334,6 +344,7 @@ public class Service extends com.alibaba.nacos.api.naming.pojo.Service implement
 
     /**
      * Get all instance.
+     * 临时实例 + 持久实例
      *
      * @return list of all instance
      */

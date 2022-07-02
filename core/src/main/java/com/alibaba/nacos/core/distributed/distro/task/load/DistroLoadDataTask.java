@@ -37,17 +37,17 @@ import java.util.concurrent.TimeUnit;
  * @author xiweng.yy
  */
 public class DistroLoadDataTask implements Runnable {
-    
+
     private final ServerMemberManager memberManager;
-    
+
     private final DistroComponentHolder distroComponentHolder;
-    
+
     private final DistroConfig distroConfig;
-    
+
     private final DistroCallback loadCallback;
-    
+
     private final Map<String, Boolean> loadCompletedMap;
-    
+
     public DistroLoadDataTask(ServerMemberManager memberManager, DistroComponentHolder distroComponentHolder,
             DistroConfig distroConfig, DistroCallback loadCallback) {
         this.memberManager = memberManager;
@@ -56,7 +56,7 @@ public class DistroLoadDataTask implements Runnable {
         this.loadCallback = loadCallback;
         loadCompletedMap = new HashMap<>(1);
     }
-    
+
     @Override
     public void run() {
         try {
@@ -64,6 +64,9 @@ public class DistroLoadDataTask implements Runnable {
             if (!checkCompleted()) {
                 GlobalExecutor.submitLoadDataTask(this, distroConfig.getLoadDataRetryDelayMillis());
             } else {
+                /**
+                 * @see com.alibaba.nacos.core.distributed.distro.DistroProtocol#startLoadTask()
+                 */
                 loadCallback.onSuccess();
                 Loggers.DISTRO.info("[DISTRO-INIT] load snapshot data success");
             }
@@ -72,7 +75,7 @@ public class DistroLoadDataTask implements Runnable {
             Loggers.DISTRO.error("[DISTRO-INIT] load snapshot data failed. ", e);
         }
     }
-    
+
     private void load() throws Exception {
         while (memberManager.allMembersWithoutSelf().isEmpty()) {
             Loggers.DISTRO.info("[DISTRO-INIT] waiting server list init...");
@@ -84,11 +87,17 @@ public class DistroLoadDataTask implements Runnable {
         }
         for (String each : distroComponentHolder.getDataStorageTypes()) {
             if (!loadCompletedMap.containsKey(each) || !loadCompletedMap.get(each)) {
+                // loadAllDataSnapshotFromRemote
                 loadCompletedMap.put(each, loadAllDataSnapshotFromRemote(each));
             }
         }
     }
-    
+
+    /**
+     * 从集群别的机器拉取快照数据
+     * @param resourceType
+     * @return
+     */
     private boolean loadAllDataSnapshotFromRemote(String resourceType) {
         DistroTransportAgent transportAgent = distroComponentHolder.findTransportAgent(resourceType);
         DistroDataProcessor dataProcessor = distroComponentHolder.findDataProcessor(resourceType);
@@ -100,11 +109,14 @@ public class DistroLoadDataTask implements Runnable {
         for (Member each : memberManager.allMembersWithoutSelf()) {
             try {
                 Loggers.DISTRO.info("[DISTRO-INIT] load snapshot {} from {}", resourceType, each.getAddress());
+                // 调用remote
                 DistroData distroData = transportAgent.getDatumSnapshot(each.getAddress());
+                // 更新数据
                 boolean result = dataProcessor.processSnapshot(distroData);
                 Loggers.DISTRO
                         .info("[DISTRO-INIT] load snapshot {} from {} result: {}", resourceType, each.getAddress(),
                                 result);
+                // 拉取一台机器的就行了，成功直接return
                 if (result) {
                     return true;
                 }
@@ -114,7 +126,7 @@ public class DistroLoadDataTask implements Runnable {
         }
         return false;
     }
-    
+
     private boolean checkCompleted() {
         if (distroComponentHolder.getDataStorageTypes().size() != loadCompletedMap.size()) {
             return false;

@@ -119,7 +119,7 @@ public class InstanceController {
      * @return 'ok' if success
      * @throws Exception any error during register
      */
-    @CanDistro
+    @CanDistro // 集群间的重定向
     @PostMapping
     @Secured(parser = NamingResourceParser.class, action = ActionTypes.WRITE)
     public String register(HttpServletRequest request) throws Exception {
@@ -459,6 +459,7 @@ public class InstanceController {
         ObjectNode result = JacksonUtils.createEmptyJsonNode();
         result.put(SwitchEntry.CLIENT_BEAT_INTERVAL, switchDomain.getClientBeatInterval());
 
+        // 发送心跳时BeatReactor的这个参数lightBeatEnabled来决定是否带beat参数进来，不过默认是带参数的
         String beat = WebUtils.optional(request, "beat", StringUtils.EMPTY);
         RsInfo clientBeat = null;
         if (StringUtils.isNotBlank(beat)) {
@@ -482,6 +483,7 @@ public class InstanceController {
         String serviceName = WebUtils.required(request, CommonParams.SERVICE_NAME);
         NamingUtils.checkServiceNameFormat(serviceName);
         Loggers.SRV_LOG.debug("[CLIENT-BEAT] full arguments: beat: {}, serviceName: {}", clientBeat, serviceName);
+        // 从服务注册中心找该实例
         Instance instance = serviceManager.getInstance(namespaceId, serviceName, clusterName, ip, port);
 
         if (instance == null) {
@@ -582,6 +584,7 @@ public class InstanceController {
         instance.setLastBeat(System.currentTimeMillis());
         String metadata = WebUtils.optional(request, "metadata", StringUtils.EMPTY);
         if (StringUtils.isNotEmpty(metadata)) {
+            // json转Ｍap
             instance.setMetadata(UtilsAndCommons.parseMetadata(metadata));
         }
 
@@ -666,6 +669,9 @@ public class InstanceController {
         try {
             if (udpPort > 0 && pushService.canEnablePush(agent)) {
 
+                // udp端口添加
+                // 服务端有实例变化 -> udp方式推送给客户端
+                // ApplicationListener
                 pushService
                         .addClient(namespaceId, serviceName, clusters, agent, new InetSocketAddress(clientIP, udpPort),
                                 pushDataSource, tid, app);
@@ -725,6 +731,7 @@ public class InstanceController {
         }
 
         Map<Boolean, List<Instance>> ipMap = new HashMap<>(2);
+        // 这个数据结构建的有点意思的
         ipMap.put(Boolean.TRUE, new ArrayList<>());
         ipMap.put(Boolean.FALSE, new ArrayList<>());
 

@@ -132,6 +132,7 @@ public class ServiceManager implements RecordListener<Service> {
      */
     @PostConstruct
     public void init() {
+        // 集群节点状态更新
         GlobalExecutor.scheduleServiceReporter(new ServiceReporter(), 60000, TimeUnit.MILLISECONDS);
 
         GlobalExecutor.submitServiceUpdateManager(new UpdatedServiceProcessor());
@@ -262,6 +263,11 @@ public class ServiceManager implements RecordListener<Service> {
             try {
                 while (true) {
                     try {
+                        // init方法ServiceReporter这个runnable中去定时发送服务同步请求
+                        // Controller接到对比checksum
+                        /**
+                         * @see ServiceManager#addUpdatedServiceToQueue
+                         */
                         serviceKey = toBeUpdatedServicesQueue.take();
                     } catch (Exception e) {
                         Loggers.EVT_LOG.error("[UPDATE-DOMAIN] Exception while taking item from LinkedBlockingDeque.");
@@ -310,12 +316,13 @@ public class ServiceManager implements RecordListener<Service> {
 
     /**
      * Update health status of instance in service.
-     *
+     * 我现在是在接受同步服务请求的机器 -> 更新服务
      * @param namespaceId namespace
      * @param serviceName service name
-     * @param serverIP    source server Ip
+     * @param serverIP    source server Ip - 服务同步请求发起的那台机器
      */
     public void updatedHealthStatus(String namespaceId, String serviceName, String serverIP) {
+        // 请求来源机器的接口拿实例信息
         Message msg = synchronizer.get(serverIP, UtilsAndCommons.assembleFullServiceName(namespaceId, serviceName));
         JsonNode serviceJson = JacksonUtils.toObj(msg.getData());
 
@@ -350,6 +357,7 @@ public class ServiceManager implements RecordListener<Service> {
         }
 
         if (changed) {
+            // 通过udp方式推送服务变更数据给订阅的client更新缓存的服务实例数据
             pushService.serviceChanged(service);
             if (Loggers.EVT_LOG.isDebugEnabled()) {
                 StringBuilder stringBuilder = new StringBuilder();
@@ -502,7 +510,7 @@ public class ServiceManager implements RecordListener<Service> {
      * @throws Exception any error occurred in the process
      */
     public void registerInstance(String namespaceId, String serviceName, Instance instance) throws NacosException {
-
+        // 该服务存在就拿该service，没有就新建一个service
         createEmptyService(namespaceId, serviceName, instance.isEphemeral());
 
         Service service = getService(namespaceId, serviceName);
@@ -661,6 +669,8 @@ public class ServiceManager implements RecordListener<Service> {
             Instances instances = new Instances();
             instances.setInstanceList(instanceList);
 
+            // 注册实例
+            // 副本替换旧的
             consistencyService.put(key, instances);
         }
     }
@@ -688,6 +698,7 @@ public class ServiceManager implements RecordListener<Service> {
 
         String key = KeyBuilder.buildInstanceListKey(namespaceId, serviceName, ephemeral);
 
+        // 下面流程和注册实例一样只不过action是remove罢了
         List<Instance> instanceList = substractIpAddresses(service, ephemeral, ips);
 
         Instances instances = new Instances();
@@ -802,6 +813,10 @@ public class ServiceManager implements RecordListener<Service> {
         // 副本
         Map<String, Instance> instanceMap;
         if (datum != null && null != datum.value) {
+            // 拿内存注册表中的数据（也就是上次的操作后的新的实例列表）
+            // 这里就解决了我的一个问题：第一次注册实例添加到tasks队列，异步线程还没处理完这个任务
+            // 第二次注册实例如果是从服务注册表去copy出一个副本，那么就会丢失数据
+            // 这里copy的是内存注册表（上次操作完后的副本 - 也就是最新数据）就解决了这个问题
             instanceMap = setValid(((Instances) datum.value).getInstanceList(), currentInstances);
         } else {
             instanceMap = new HashMap<>(ips.length);
@@ -884,6 +899,7 @@ public class ServiceManager implements RecordListener<Service> {
      * Put service into manager.
      *
      * @param service service
+     * 这个serviceMap就是服务注册中心
      */
     public void putService(Service service) {
         if (!serviceMap.containsKey(service.getNamespaceId())) {
@@ -1104,6 +1120,7 @@ public class ServiceManager implements RecordListener<Service> {
         public void run() {
             try {
 
+                // Map<namespace, Set<serviceName>>
                 Map<String, Set<String>> allServiceNames = getAllServiceNames();
 
                 if (allServiceNames.size() <= 0) {
@@ -1116,6 +1133,7 @@ public class ServiceManager implements RecordListener<Service> {
                     ServiceChecksum checksum = new ServiceChecksum(namespaceId);
 
                     for (String serviceName : allServiceNames.get(namespaceId)) {
+                        // hash(服务名)%servers.size
                         if (!distroMapper.responsible(serviceName)) {
                             continue;
                         }
@@ -1145,6 +1163,7 @@ public class ServiceManager implements RecordListener<Service> {
                         if (server.getAddress().equals(NetUtils.localServer())) {
                             continue;
                         }
+                        // 这个server和健康检查的server是同一台
                         synchronizer.send(server.getAddress(), msg);
                     }
                 }

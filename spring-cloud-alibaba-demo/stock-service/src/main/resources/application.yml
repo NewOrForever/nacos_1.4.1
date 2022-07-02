@@ -12,3 +12,8 @@ spring:
                 cluster-name: NJ
                 metadata:
                     version: v1
+
+my.test: fromProperties
+
+
+

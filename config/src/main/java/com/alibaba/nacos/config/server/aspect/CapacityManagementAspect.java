@@ -30,6 +30,7 @@ import org.aspectj.lang.annotation.Aspect;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.EnableAspectJAutoProxy;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
@@ -41,25 +42,26 @@ import java.nio.charset.Charset;
  * @author hexu.hxy
  * @date 2018/3/13
  */
+
 @Aspect
 public class CapacityManagementAspect {
-    
+
     private static final Logger LOGGER = LoggerFactory.getLogger(CapacityManagementAspect.class);
-    
+
     private static final String SYNC_UPDATE_CONFIG_ALL =
             "execution(* com.alibaba.nacos.config.server.controller.ConfigController.publishConfig(..)) && args"
                     + "(request,response,dataId,group,content,appName,srcUser,tenant,tag,..)";
-    
+
     private static final String DELETE_CONFIG =
             "execution(* com.alibaba.nacos.config.server.controller.ConfigController.deleteConfig(..)) && args"
                     + "(request,response,dataId,group,tenant,..)";
-    
+
     @Autowired
     private CapacityService capacityService;
-    
+
     @Autowired
     private PersistService persistService;
-    
+
     /**
      * Need to judge the size of content whether to exceed the limination.
      */
@@ -85,7 +87,7 @@ public class CapacityManagementAspect {
         }
         return pjp.proceed();
     }
-    
+
     /**
      * Update operation: open the limination of capacity management and it will check the size of content.
      *
@@ -107,7 +109,7 @@ public class CapacityManagementAspect {
         }
         return pjp.proceed();
     }
-    
+
     /**
      * Write operation.
      * Step 1: count whether to open the limination checking funtion for capacity management;
@@ -132,16 +134,16 @@ public class CapacityManagementAspect {
         }
         return getResult(pjp, response, group, tenant, counterMode, hasTenant);
     }
-    
+
     private Object response4Limit(HttpServletRequest request, HttpServletResponse response, LimitType limitType) {
         response.setStatus(limitType.status);
         return String.valueOf(limitType.status);
     }
-    
+
     private boolean hasTenant(String tenant) {
         return StringUtils.isNotBlank(tenant);
     }
-    
+
     /**
      * The usage of capacity table for counting module will subtracte one whether open the limination check of capacity management.
      */
@@ -158,7 +160,7 @@ public class CapacityManagementAspect {
         }
         return do4Delete(pjp, response, group, tenant, configInfo);
     }
-    
+
     /**
      * Delete Operation.
      *
@@ -189,7 +191,7 @@ public class CapacityManagementAspect {
         insertOrUpdateUsage(group, tenant, counterMode, hasTenant);
         return getResult(pjp, response, group, tenant, counterMode, hasTenant);
     }
-    
+
     private void correctUsage(String group, String tenant, boolean hasTenant) {
         try {
             if (hasTenant) {
@@ -203,7 +205,7 @@ public class CapacityManagementAspect {
             LOGGER.error("[capacityManagement] correctUsage ", e);
         }
     }
-    
+
     private Object getResult(ProceedingJoinPoint pjp, HttpServletResponse response, String group, String tenant,
             CounterMode counterMode, boolean hasTenant) throws Throwable {
         try {
@@ -219,7 +221,7 @@ public class CapacityManagementAspect {
             throw throwable;
         }
     }
-    
+
     /**
      * Usage counting service: it will count whether the limination check funtion will be open.
      */
@@ -235,7 +237,7 @@ public class CapacityManagementAspect {
             LOGGER.error("[capacityManagement] insertOrUpdateUsage ", e);
         }
     }
-    
+
     private LimitType getLimitType(CounterMode counterMode, String group, String tenant, String content,
             boolean hasTenant) {
         try {
@@ -258,7 +260,7 @@ public class CapacityManagementAspect {
         }
         return null;
     }
-    
+
     /**
      * Get and return the byte size of encoding.
      */
@@ -270,7 +272,7 @@ public class CapacityManagementAspect {
         }
         return 0;
     }
-    
+
     private LimitType getGroupOrTenantLimitType(CounterMode counterMode, String group, String tenant, int currentSize,
             boolean hasTenant) {
         if (group == null) {
@@ -292,7 +294,7 @@ public class CapacityManagementAspect {
         }
         return LimitType.OVER_GROUP_QUOTA;
     }
-    
+
     private boolean isUpdateSuccess(CounterMode counterMode, String group, String tenant, boolean hasTenant) {
         boolean updateSuccess;
         if (hasTenant) {
@@ -308,7 +310,7 @@ public class CapacityManagementAspect {
         }
         return updateSuccess;
     }
-    
+
     private void insertCapacity(String group, String tenant, boolean hasTenant) {
         if (hasTenant) {
             capacityService.initTenantCapacity(tenant);
@@ -316,7 +318,7 @@ public class CapacityManagementAspect {
             capacityService.initGroupCapacity(group);
         }
     }
-    
+
     private Capacity getCapacity(String group, String tenant, boolean hasTenant) {
         Capacity capacity;
         if (hasTenant) {
@@ -326,7 +328,7 @@ public class CapacityManagementAspect {
         }
         return capacity;
     }
-    
+
     private boolean isSizeLimited(String group, String tenant, int currentSize, boolean hasTenant, boolean isAggr,
             Capacity capacity) {
         int defaultMaxSize = getDefaultMaxSize(isAggr);
@@ -342,21 +344,21 @@ public class CapacityManagementAspect {
         // If there no exists capacity info, then it uses maxSize limination default value to compare.
         return isOverSize(group, tenant, currentSize, defaultMaxSize, hasTenant);
     }
-    
+
     private Integer getMaxSize(boolean isAggr, Capacity capacity) {
         if (isAggr) {
             return capacity.getMaxAggrSize();
         }
         return capacity.getMaxSize();
     }
-    
+
     private int getDefaultMaxSize(boolean isAggr) {
         if (isAggr) {
             return PropertyUtil.getDefaultMaxAggrSize();
         }
         return PropertyUtil.getDefaultMaxSize();
     }
-    
+
     private boolean isOverSize(String group, String tenant, int currentSize, int maxSize, boolean hasTenant) {
         if (currentSize > maxSize) {
             if (hasTenant) {
@@ -372,7 +374,7 @@ public class CapacityManagementAspect {
         }
         return false;
     }
-    
+
     private void doResult(CounterMode counterMode, HttpServletResponse response, String group, String tenant,
             Object result, boolean hasTenant) {
         try {
@@ -386,7 +388,7 @@ public class CapacityManagementAspect {
             LOGGER.error("[capacityManagement] doResult ", e);
         }
     }
-    
+
     private boolean isSuccess(HttpServletResponse response, Object result) {
         int status = response.getStatus();
         if (status == HttpServletResponse.SC_OK) {
@@ -395,7 +397,7 @@ public class CapacityManagementAspect {
         LOGGER.warn("[capacityManagement] response status is not 200, status: {}, result: {}", status, result);
         return false;
     }
-    
+
     private void rollback(CounterMode counterMode, String group, String tenant, boolean hasTenant) {
         try {
             rollbackClusterUsage(counterMode);
@@ -408,7 +410,7 @@ public class CapacityManagementAspect {
             LOGGER.error("[capacityManagement] rollback ", e);
         }
     }
-    
+
     private void rollbackClusterUsage(CounterMode counterMode) {
         try {
             if (!capacityService.updateClusterUsage(counterMode.reverse())) {
@@ -418,7 +420,7 @@ public class CapacityManagementAspect {
             LOGGER.error("[capacityManagement] rollback ", e);
         }
     }
-    
+
     /**
      * limit tyep.
      *
@@ -432,11 +434,11 @@ public class CapacityManagementAspect {
         OVER_GROUP_QUOTA("超过该Group配置个数上限", 429),
         OVER_TENANT_QUOTA("超过该租户配置个数上限", 429),
         OVER_MAX_SIZE("超过配置的内容大小上限", 429);
-        
+
         public final String description;
-        
+
         public final int status;
-        
+
         LimitType(String description, int status) {
             this.description = description;
             this.status = status;
