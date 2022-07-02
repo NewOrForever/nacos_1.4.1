@@ -396,6 +396,7 @@ public class ClientWorker implements Closeable {
     List<String> checkUpdateDataIds(List<CacheData> cacheDatas, List<String> inInitializingCacheList) throws Exception {
         StringBuilder sb = new StringBuilder();
         for (CacheData cacheData : cacheDatas) {
+            // 没使用本地配置的缓存配置，从服务端拉取变更的dataid
             if (!cacheData.isUseLocalConfigInfo()) {
                 sb.append(cacheData.dataId).append(WORD_SEPARATOR);
                 sb.append(cacheData.group).append(WORD_SEPARATOR);
@@ -413,6 +414,7 @@ public class ClientWorker implements Closeable {
             }
         }
         boolean isInitializingCacheList = !inInitializingCacheList.isEmpty();
+        // sb拼接了缓存配置信息
         return checkUpdateConfigStr(sb.toString(), isInitializingCacheList);
     }
 

@@ -318,6 +318,7 @@ public class ConfigController {
 
         Map<String, String> clientMd5Map;
         try {
+            // 客户端的缓存配置
             clientMd5Map = MD5Util.getClientMd5Map(probeModify);
         } catch (Throwable e) {
             throw new IllegalArgumentException("invalid probeModify");

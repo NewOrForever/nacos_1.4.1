@@ -254,8 +254,10 @@ public class LongPollingService {
         } else {
             long start = System.currentTimeMillis();
             // 更改的dataid list
+            // 客户端和服务端配置数据比较
             List<String> changedGroups = MD5Util.compareMd5(req, rsp, clientMd5Map);
             if (changedGroups.size() > 0) {
+                // 将变更的dataid响应给客户端
                 generateResponse(req, rsp, changedGroups);
                 LogUtil.CLIENT_LOG.info("{}|{}|{}|{}|{}|{}|{}", System.currentTimeMillis() - start, "instant",
                         RequestUtil.getRemoteIp(req), "polling", clientMd5Map.size(), probeRequestSize,
