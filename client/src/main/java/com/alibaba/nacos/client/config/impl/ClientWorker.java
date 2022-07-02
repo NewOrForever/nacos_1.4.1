@@ -282,6 +282,7 @@ public class ClientWorker implements Closeable {
 
         switch (result.getCode()) {
             case HttpURLConnection.HTTP_OK:
+                // 保存到本地配置文件
                 LocalConfigInfoProcessor.saveSnapshot(agent.getName(), dataId, group, tenant, result.getData());
                 // 配置的json数据
                 ct[0] = result.getData();
@@ -373,6 +374,7 @@ public class ClientWorker implements Closeable {
         // Dispatch taskes.
         int listenerSize = cacheMap.size();
         // Round up the longingTaskCount.
+        // 向上取整 - 3000为单位作为一批次
         int longingTaskCount = (int) Math.ceil(listenerSize / ParamUtil.getPerTaskConfigSize());
         if (longingTaskCount > currentLongingTaskCount) {
             for (int i = (int) currentLongingTaskCount; i < longingTaskCount; i++) {
@@ -553,6 +555,7 @@ public class ClientWorker implements Closeable {
 
     private void init(Properties properties) {
 
+        // 默认30s，最小10s
         timeout = Math.max(ConvertUtils.toInt(properties.getProperty(PropertyKeyConst.CONFIG_LONG_POLL_TIMEOUT),
                 Constants.CONFIG_LONG_POLL_TIMEOUT), Constants.MIN_CONFIG_LONG_POLL_TIMEOUT);
 
@@ -573,7 +576,8 @@ public class ClientWorker implements Closeable {
     }
 
     class LongPollingRunnable implements Runnable {
-
+        // 3000为单位分批次创建对象
+        // 这个实际就是任务id，3000以内就一个对象taskId为0，3000~6000就new 了第二个对象 -> taskId为1 ，一次类推...
         private final int taskId;
 
         public LongPollingRunnable(int taskId) {
@@ -604,6 +608,7 @@ public class ClientWorker implements Closeable {
                     }
                 }
 
+                // 到这里缓存配置中已经是和本地配置（snapshot）一致了
                 // check server config
                 // 数据变更了的groupkey
                 List<String> changedGroupKeys = checkUpdateDataIds(cacheDatas, inInitializingCacheList);
