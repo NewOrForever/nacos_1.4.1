@@ -244,9 +244,11 @@ public class LongPollingService {
         String noHangUpFlag = req.getHeader(LongPollingService.LONG_POLLING_NO_HANG_UP_HEADER);
         String appName = req.getHeader(RequestUtil.CLIENT_APPNAME_HEADER);
         String tag = req.getHeader("Vipserver-Tag");
+        // 0.5s
         int delayTime = SwitchService.getSwitchInteger(SwitchService.FIXED_DELAY_TIME, 500);
 
         // Add delay time for LoadBalance, and one response is returned 500 ms in advance to avoid client timeout.
+        // 29.5s
         long timeout = Math.max(10000, Long.parseLong(str) - delayTime);
         if (isFixedPolling()) {
             timeout = Math.max(10000, getFixedPollingInterval());
@@ -278,6 +280,7 @@ public class LongPollingService {
         // AsyncContext.setTimeout() is incorrect, Control by oneself
         asyncContext.setTimeout(0L);
 
+        // 用于server端配置变更后主动推送给client
         ConfigExecutor.executeLongPolling(
                 new ClientLongPolling(asyncContext, clientMd5Map, ip, probeRequestSize, timeout, appName, tag));
     }
@@ -287,7 +290,7 @@ public class LongPollingService {
     }
 
     @SuppressWarnings("PMD.ThreadPoolCreationRule")
-    public LongPollingService() {
+        public LongPollingService() {
         allSubs = new ConcurrentLinkedQueue<ClientLongPolling>();
 
         ConfigExecutor.scheduleLongPolling(new StatTask(), 0L, 10L, TimeUnit.SECONDS);
@@ -396,6 +399,7 @@ public class LongPollingService {
 
         @Override
         public void run() {
+            // 异步，延迟29.5s执行任务
             asyncTimeoutFuture = ConfigExecutor.scheduleLongPolling(new Runnable() {
                 @Override
                 public void run() {
@@ -433,6 +437,7 @@ public class LongPollingService {
 
             }, timeoutTime, TimeUnit.MILLISECONDS);
 
+            // 先添加
             allSubs.add(this);
         }
 

@@ -80,6 +80,8 @@ public class ConfigServletInner {
 
         // Long polling.
         if (LongPollingService.isSupportLongPolling(request)) {
+            // 就变更的配置的dataid传回给client
+            // 没有变更则会添加一个ClientLongPolling用于LocalDataChangeEvent事件中主动push给client变更的dataid
             longPollingService.addLongPollingClient(request, response, clientMd5Map, probeRequestSize);
             return HttpServletResponse.SC_OK + "";
         }
