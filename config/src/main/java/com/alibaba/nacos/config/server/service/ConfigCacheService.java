@@ -96,8 +96,10 @@ public class ConfigCacheService {
                                 + "lastModifiedNew={}", groupKey, md5, ConfigCacheService.getLastModifiedTs(groupKey),
                         lastModifiedTs);
             } else if (!PropertyUtil.isDirectRead()) {
+                // 外部存储 - mysql -> 保存到磁盘
                 DiskUtil.saveToDisk(dataId, group, tenant, content);
             }
+            // 更新缓存
             updateMd5(groupKey, md5, lastModifiedTs);
             return true;
         } catch (IOException ioe) {

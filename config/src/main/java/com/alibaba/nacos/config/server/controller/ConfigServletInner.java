@@ -95,6 +95,7 @@ public class ConfigServletInner {
         if (version == null) {
             version = "2.0.0";
         }
+        // 2.0.4 -> 204
         int versionNum = Protocol.getVersionNumber(version);
 
         // Befor 2.0.4 version, return value is put into header.

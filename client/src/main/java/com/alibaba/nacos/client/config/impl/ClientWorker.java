@@ -113,6 +113,7 @@ public class ClientWorker implements Closeable {
             throws NacosException {
         group = null2defaultGroup(group);
         String tenant = agent.getTenant();
+        // 添加缓存配置
         CacheData cache = addCacheDataIfAbsent(dataId, group, tenant);
         for (Listener listener : listeners) {
             cache.addListener(listener);
@@ -229,6 +230,7 @@ public class ClientWorker implements Closeable {
                 cacheData.setContent(ct[0]);
             }
             int taskId = cacheMap.size() / (int) ParamUtil.getPerTaskConfigSize();
+            // 对应长轮询的taskId
             cacheData.setTaskId(taskId);
             lastCacheData = cacheData;
         }
