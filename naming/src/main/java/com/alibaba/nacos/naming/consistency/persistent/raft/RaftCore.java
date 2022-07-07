@@ -240,16 +240,20 @@ public class RaftCore implements Closeable {
             // 节点ip（应该是leader ip）
             json.replace("source", JacksonUtils.transferToJsonNode(peers.local()));
 
+            // 写入本地磁盘、发布事件更新内存注册表
             onPublish(datum, peers.local());
 
             final String content = json.toString();
 
+            // 过半数写入follower成功
             final CountDownLatch latch = new CountDownLatch(peers.majorityCount());
             for (final String server : peers.allServersIncludeMyself()) {
+                // leader就是本机已经写入成功，还只需要一台follower写入成功就ok了
                 if (isLeader(server)) {
                     latch.countDown();
                     continue;
                 }
+                // commit
                 final String url = buildUrl(server, API_ON_PUB);
                 HttpClient.asyncHttpPostLarge(url, Arrays.asList("key", key), content, new Callback<String>() {
                     @Override
@@ -276,6 +280,7 @@ public class RaftCore implements Closeable {
 
             }
 
+            // 等待过半写入成功，或者5s超时抛异常
             if (!latch.await(UtilsAndCommons.RAFT_PUBLISH_TIMEOUT, TimeUnit.MILLISECONDS)) {
                 // only majority servers return success can we consider this update success
                 Loggers.RAFT.error("data publish failed, caused failed to notify majority, key={}", key);
@@ -368,6 +373,7 @@ public class RaftCore implements Closeable {
             throw new IllegalStateException("received empty datum");
         }
 
+        // source就得是leader
         if (!peers.isLeader(source.ip)) {
             Loggers.RAFT
                     .warn("peer {} tried to publish data but wasn't leader, leader: {}", JacksonUtils.toJson(source),
@@ -405,6 +411,7 @@ public class RaftCore implements Closeable {
             }
         }
         raftStore.updateTerm(local.term.get());
+        // 发布事件更新内存注册表
         NotifyCenter.publishEvent(ValueChangeEvent.builder().key(datum.key).action(DataOperation.CHANGE).build());
         Loggers.RAFT.info("data added/updated, key={}, term={}", datum.key, local.term);
     }
