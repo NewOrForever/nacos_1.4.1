@@ -805,6 +805,8 @@ public class RaftCore implements Closeable {
         local.resetLeaderDue();
         local.resetHeartbeatDue();
 
+        // 更新leader信息，将remote设置为新leader，更新
+        // 原有leader的节点信息（leader节点会通过心跳通知其他节点更新leader）
         peers.makeLeader(remote);
 
         if (!switchDomain.isSendBeatOnly()) {

@@ -223,7 +223,10 @@ public class RaftPeerSet extends MemberChangeListener implements Closeable {
      * @return new leader
      */
     public RaftPeer makeLeader(RaftPeer candidate) {
+        // 当前集群的leader和remote节点不同
+        // 我估计考虑的是脑裂的场景
         if (!Objects.equals(leader, candidate)) {
+            // 将当前集群的leader设置为remote节点
             leader = candidate;
             ApplicationUtils.publishEvent(new MakeLeaderEvent(this, leader, local()));
             Loggers.RAFT

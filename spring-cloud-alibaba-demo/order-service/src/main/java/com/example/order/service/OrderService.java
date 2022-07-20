@@ -15,6 +15,7 @@ import org.springframework.stereotype.Service;
 @Service
 public class OrderService {
 
+    // FeignClientFactoryBean
     @Autowired
     private StockService stockService;
 
