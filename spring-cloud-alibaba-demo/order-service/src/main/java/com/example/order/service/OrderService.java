@@ -21,7 +21,7 @@ public class OrderService {
 
     public String create(Integer productId, Integer stockCount) {
         System.out.println("创建订单成功");  // TODO
-        stockService.deductStock(productId, stockCount);
+        System.out.println(stockService.deductStock(productId, stockCount));
 
         return "success";
     }

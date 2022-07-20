@@ -6,6 +6,8 @@ import org.springframework.cloud.context.config.annotation.RefreshScope;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import javax.servlet.http.HttpServletRequest;
+
 /**
  * ClassName:TestController
  * Package:com.example.stock.controller
@@ -25,5 +27,10 @@ public class TestController {
     @RequestMapping("/testvalue")
     public void testValue() {
         System.out.println("==============> " + testVal);
+    }
+
+    @RequestMapping("/ribbon")
+    public void testRibbonLoadBalancer(HttpServletRequest request) {
+        System.out.println("==========> " + RequestUtil.getRemoteIp(request));
     }
 }

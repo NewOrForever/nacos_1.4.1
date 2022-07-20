@@ -7,7 +7,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 /**
  * ClassName:StockService
  * Package:com.example.order.feign
- * Description:
+ * Description: feign核心就是拼接url -> 交给ribbon
  *
  * @Date:2022/6/22 12:55
  * @Author:qs@1.com

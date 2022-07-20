@@ -73,6 +73,7 @@
 
     <modules>
         <module>stock-service</module>
+        <module>order-service</module>
     </modules>
 
 </project>
