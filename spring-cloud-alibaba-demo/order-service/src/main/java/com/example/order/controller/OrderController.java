@@ -32,6 +32,18 @@ public class OrderController {
         return orderService.create(productId, stockCount);
     }
 
+    @RequestMapping("/findOrderByUserId/{id}")
+    public String findOrderByUserId(@PathVariable Integer id) {
+        System.out.println("==========>集群限流保护测试");
+
+        // 模拟异常测试熔断降级
+        if (id == 5) {
+            throw new IllegalArgumentException("非法参数异常");
+        }
+
+        return String.format("拿到了%s的订单信息", id.toString());
+    }
+
     @RequestMapping("/testRibbon")
     public void testRibbon() {
         restTemplate.getForObject("http://stock-service/test/ribbon", Void.class);
