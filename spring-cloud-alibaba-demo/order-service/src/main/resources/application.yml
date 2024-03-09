@@ -1,5 +1,7 @@
 server:
     port: 8900
+#    servlet:
+#        context-path: /mall-order
 spring:
     application:
         name: order-service
@@ -11,5 +13,6 @@ spring:
                 cluster-name: NJ
                 metadata:
                     version: v2
+
 
 
